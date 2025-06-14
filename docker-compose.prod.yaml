@@ -56,7 +56,7 @@ services:
       DOMAIN_NAME: ${DOMAIN_NAME}
       PROTOCOL: ${PROTOCOL}
     ports:
-      - "127.0.0.1:3001:3001"
+      - "3001:3001"
     volumes:
       - ./backend/uploads:/app/uploads
       - ./logs/backend:/app/logs
