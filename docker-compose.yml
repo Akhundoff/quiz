@@ -67,7 +67,7 @@ services:
       PMA_PASSWORD: ${DB_PASSWORD:-quiz_password}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
     ports:
-      - "8080:80"
+      - "8082:80"
     depends_on:
       - mysql
     networks:
