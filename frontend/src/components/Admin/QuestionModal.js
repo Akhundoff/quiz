@@ -30,6 +30,12 @@ const QuestionModal = ({ question, onClose, onSave }) => {
         setLoading(true);
 
         try {
+            // Sual mətni yoxlanması
+            if (!formData.text.trim()) {
+                toast.error('Sual mətni daxil edin');
+                return;
+            }
+
             if (formData.type !== 'text' && formData.options.filter(opt => opt.trim()).length < 2) {
                 toast.error('Ən azı 2 variant daxil edin');
                 return;
@@ -37,6 +43,7 @@ const QuestionModal = ({ question, onClose, onSave }) => {
 
             const submitData = {
                 ...formData,
+                text: formData.text.trim(),
                 options: formData.type === 'text' ? null : formData.options.filter(opt => opt.trim()),
             };
 
@@ -95,7 +102,21 @@ const QuestionModal = ({ question, onClose, onSave }) => {
                 </div>
 
                 <form onSubmit={handleSubmit} className="p-6 space-y-6">
-                    {/* Question Text */}
+                    {/* ƏLAVƏ EDİLDİ: Question Text Input */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Sual mətni *
+                        </label>
+                        <textarea
+                            value={formData.text}
+                            onChange={(e) => setFormData({ ...formData, text: e.target.value })}
+                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[100px] resize-vertical"
+                            placeholder="Sualınızı burada yazın..."
+                            required
+                        />
+                    </div>
+
+                    {/* Question Type */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                             Sual növü *
