@@ -10,7 +10,7 @@ services:
       MYSQL_USER: ${DB_USERNAME}
       MYSQL_PASSWORD: ${DB_PASSWORD}
     ports:
-      - "127.0.0.1:${DB_PORT}:3306"
+      - "${DB_PORT}:3306"
     volumes:
       - mysql_prod_data:/var/lib/mysql
       - ./database/init:/docker-entrypoint-initdb.d
@@ -92,7 +92,7 @@ services:
       REACT_APP_DOMAIN: ${DOMAIN_NAME}
       REACT_APP_PROTOCOL: ${PROTOCOL}
     ports:
-      - "127.0.0.1:3000:80"
+      - "3000:80"
     networks:
       - quiz_prod_network
     depends_on:
