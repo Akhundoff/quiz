@@ -81,18 +81,18 @@ switch-env: ## Switch environment (usage: make switch-env ENV=production)
 build: ## Build all Docker containers
 	@echo "🔨 Building Docker containers..."
 	@if [ -f docker-compose.$(ENV).yml ]; then \
-		docker-compose -f docker-compose.yml -f docker-compose.$(ENV).yml build --no-cache; \
+		docker compose -f docker-compose.yml -f docker-compose.$(ENV).yml build --no-cache; \
 	else \
-		docker-compose build --no-cache; \
+		docker compose build --no-cache; \
 	fi
 	@echo "✅ Build completed!"
 
 start: ## Start all services with Docker
 	@echo "🚀 Starting Quiz System..."
 	@if [ -f docker-compose.production.yml ] && [ "$(ENV)" = "production" ]; then \
-		docker-compose -f docker-compose.yml -f docker-compose.production.yml up -d; \
+		docker compose -f docker-compose.yml -f docker-compose.production.yml up -d; \
 	else \
-		docker-compose up -d; \
+		docker compose up -d; \
 	fi
 	@echo "✅ Services started!"
 	@echo ""
@@ -123,9 +123,9 @@ show-urls: ## Show access URLs based on environment
 stop: ## Stop all services
 	@echo "⏹️  Stopping services..."
 	@if [ -f docker-compose.production.yml ] && [ "$(ENV)" = "production" ]; then \
-		docker-compose -f docker-compose.yml -f docker-compose.production.yml down; \
+		docker compose -f docker-compose.yml -f docker-compose.production.yml down; \
 	else \
-		docker-compose down; \
+		docker compose down; \
 	fi
 	@echo "✅ Services stopped!"
 
@@ -178,20 +178,20 @@ deploy-prod: ## Full production deployment with domain setup
 
 # Monitoring Commands
 logs: ## Show logs from all services
-	docker-compose logs -f
+	docker compose logs -f
 
 logs-backend: ## Show backend logs only
-	docker-compose logs -f backend
+	docker compose logs -f backend
 
 logs-frontend: ## Show frontend logs only
-	docker-compose logs -f frontend
+	docker compose logs -f frontend
 
 logs-mysql: ## Show MySQL logs only
-	docker-compose logs -f mysql
+	docker compose logs -f mysql
 
 status: ## Show status of all services
 	@echo "📊 Service Status:"
-	docker-compose ps
+	docker compose ps
 
 # Database Commands
 db-reset: ## Reset database (WARNING: This will delete all data!)
@@ -200,11 +200,11 @@ db-reset: ## Reset database (WARNING: This will delete all data!)
 	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
 		echo ""; \
 		echo "🗑️  Resetting database..."; \
-		docker-compose down -v; \
+		docker compose down -v; \
 		docker volume prune -f; \
-		docker-compose up -d mysql; \
+		docker compose up -d mysql; \
 		sleep 10; \
-		docker-compose up -d; \
+		docker compose up -d; \
 		echo "✅ Database reset completed!"; \
 	else \
 		echo ""; \
@@ -216,24 +216,24 @@ db-backup: ## Create database backup
 	@mkdir -p backups
 	@if [ -f .env ]; then \
 		export $$(cat .env | grep -v '^#' | xargs) && \
-		docker-compose exec mysql mysqldump -u $${DB_USERNAME} -p$${DB_PASSWORD} $${DB_DATABASE} > backups/backup_$$(date +%Y%m%d_%H%M%S).sql; \
+		docker compose exec mysql mysqldump -u $${DB_USERNAME} -p$${DB_PASSWORD} $${DB_DATABASE} > backups/backup_$$(date +%Y%m%d_%H%M%S).sql; \
 	else \
-		docker-compose exec mysql mysqldump -u quiz_user -pquiz_password quiz_system > backups/backup_$$(date +%Y%m%d_%H%M%S).sql; \
+		docker compose exec mysql mysqldump -u quiz_user -pquiz_password quiz_system > backups/backup_$$(date +%Y%m%d_%H%M%S).sql; \
 	fi
 	@echo "✅ Backup created in backups/ directory"
 
 db-connect: ## Connect to MySQL database
 	@if [ -f .env ]; then \
 		export $$(cat .env | grep -v '^#' | xargs) && \
-		docker-compose exec mysql mysql -u $${DB_USERNAME} -p$${DB_PASSWORD} $${DB_DATABASE}; \
+		docker compose exec mysql mysql -u $${DB_USERNAME} -p$${DB_PASSWORD} $${DB_DATABASE}; \
 	else \
-		docker-compose exec mysql mysql -u quiz_user -pquiz_password quiz_system; \
+		docker compose exec mysql mysql -u quiz_user -pquiz_password quiz_system; \
 	fi
 
 # Maintenance Commands
 clean: ## Clean up Docker containers, images, and volumes
 	@echo "🧹 Cleaning up..."
-	docker-compose down -v
+	docker compose down -v
 	docker system prune -f
 	docker volume prune -f
 	@echo "✅ Cleanup completed!"
@@ -241,9 +241,9 @@ clean: ## Clean up Docker containers, images, and volumes
 update: ## Pull latest changes and restart services
 	@echo "⬆️  Updating system..."
 	git pull
-	docker-compose down
-	docker-compose build --no-cache
-	docker-compose up -d
+	docker compose down
+	docker compose build --no-cache
+	docker compose up -d
 	@echo "✅ Update completed!"
 
 # Health Check
@@ -257,7 +257,7 @@ health: ## Check health of all services
 		echo "Frontend: $$(curl -s -o /dev/null -w "%%{http_code}" http://localhost:3000 || echo "❌ DOWN")"; \
 		echo "Backend: $$(curl -s -o /dev/null -w "%%{http_code}" http://localhost:3001/api/quiz/questions || echo "❌ DOWN")"; \
 	fi
-	@echo "MySQL: $$(docker-compose exec mysql mysqladmin ping -h localhost 2>/dev/null && echo "✅ UP" || echo "❌ DOWN")"
+	@echo "MySQL: $$(docker compose exec mysql mysqladmin ping -h localhost 2>/dev/null && echo "✅ UP" || echo "❌ DOWN")"
 
 # Quick Development Setup
 quick-start: setup-dev install build start ## Complete setup: install dependencies, build, and start

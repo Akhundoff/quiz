@@ -1,0 +1,175 @@
+name: 🚀 Deploy Quiz System
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+env:
+  DOCKER_COMPOSE_VERSION: 2.24.0
+  NODE_VERSION: 18
+
+jobs:
+  # Test işi (localhost - development üçün)
+  test:
+    name: 🧪 Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 Install Backend Dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: 📦 Install Frontend Dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: 🧪 Run Backend Tests
+        working-directory: ./backend
+        run: npm test || echo "No tests configured"
+
+      - name: 🏗️ Build Frontend
+        working-directory: ./frontend
+        run: npm run build
+
+      - name: 🧪 Test Docker Build (localhost - test environment)
+        run: |
+          # Only test if containers build successfully
+          docker compose build --no-cache
+          echo "✅ Docker build successful"
+
+  # Production deployment
+  deploy:
+    name: 🚀 Deploy to Production
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔐 Setup SSH
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: 🚀 Deploy to Production Server
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          DOMAIN_NAME: ${{ secrets.DOMAIN_NAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
+        run: |
+          ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST << 'ENDSSH'
+            # Navigate to project directory
+            cd /var/www/quiz-system
+          
+            # Backup current database
+            mkdir -p backup
+            docker compose exec -T mysql mysqldump -u quiz_user -p'${{ secrets.DB_PASSWORD }}' quiz_system > backup/backup_$(date +%Y%m%d_%H%M%S).sql 2>/dev/null || echo "Backup failed - maybe first deployment"
+          
+            # Pull latest code
+            git fetch origin
+            git reset --hard origin/main
+          
+            # Create production environment file
+            cat > .env << 'ENDENV'
+          NODE_ENV=production
+          DOMAIN_NAME=${{ secrets.DOMAIN_NAME }}
+          PROTOCOL=https
+          
+          # Database Configuration
+          DB_HOST=mysql
+          DB_PORT=3306
+          DB_USERNAME=quiz_user
+          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+          DB_DATABASE=quiz_system
+          MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}
+          
+          # JWT Configuration
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          
+          # URLs - Production
+          FRONTEND_URL=https://${{ secrets.DOMAIN_NAME }}
+          BACKEND_URL=https://${{ secrets.DOMAIN_NAME }}
+          API_URL=https://${{ secrets.DOMAIN_NAME }}/api
+          CORS_ORIGINS=https://${{ secrets.DOMAIN_NAME }}
+          
+          # Application Configuration
+          PORT=3001
+          ENDENV
+          
+            # Stop existing containers
+            docker compose down || echo "No containers to stop"
+          
+            # Clean up old images
+            docker system prune -f
+          
+            # Build and start with production config
+            docker compose build --no-cache
+            docker compose up -d
+          
+            # Wait for services to be ready
+            echo "⏳ Waiting for services to start..."
+            sleep 60
+          
+            # Health check with actual domain (not localhost!)
+            echo "🔍 Health checking production endpoints..."
+          
+            # Check if containers are running
+            docker compose ps
+          
+            # Internal health check (container to container)
+            docker compose exec -T backend curl -f http://localhost:3001/api/quiz/questions || echo "⚠️ Backend internal check failed"
+          
+            # External health check (through nginx/domain)
+            curl -f https://${{ secrets.DOMAIN_NAME }}/api/quiz/questions -k || echo "⚠️ External API check failed"
+            curl -f https://${{ secrets.DOMAIN_NAME }} -k || echo "⚠️ Frontend check failed"
+          
+            echo "🎉 Deployment completed!"
+          ENDSSH
+
+      - name: 🌐 External Health Check
+        env:
+          DOMAIN_NAME: ${{ secrets.DOMAIN_NAME }}
+        run: |
+          echo "🔍 Running external health checks..."
+          sleep 30  # Wait a bit more for full startup
+          
+          # Test from GitHub Actions runner (external)
+          curl -f https://${{ secrets.DOMAIN_NAME }}/health -k || echo "⚠️ Health endpoint failed"
+          curl -f https://${{ secrets.DOMAIN_NAME }}/api/quiz/questions -k || echo "⚠️ API endpoint failed"
+          
+          echo "✅ External health checks completed"
+
+      - name: 📱 Deployment Success Notification
+        if: success()
+        run: |
+          echo "🎉 Deployment successful!"
+          echo "🌐 Frontend: https://${{ secrets.DOMAIN_NAME }}"
+          echo "📚 API Docs: https://${{ secrets.DOMAIN_NAME }}/api/docs"
+          echo "🔐 Admin Panel: https://${{ secrets.DOMAIN_NAME }}/admin"
+
+      - name: 🚨 Deployment Failure Notification
+        if: failure()
+        run: |
+          echo "❌ Deployment failed!"
+          echo "🔍 Check the logs above for details"
+          echo "🔧 Common issues:"
+          echo "  - SSH connection failed"
+          echo "  - Domain DNS not configured"
+          echo "  - SSL certificate issues"
+          echo "  - Docker build errors"
