@@ -1,0 +1,65 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: quiz_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: quiz_system
+      MYSQL_USER: quiz_user
+      MYSQL_PASSWORD: ${DB_PASSWORD:-quiz_password}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - quiz-network
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: quiz_backend
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USERNAME: quiz_user
+      DB_PASSWORD: ${DB_PASSWORD:-quiz_password}
+      DB_DATABASE: quiz_system
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-this}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      BACKEND_URL: ${BACKEND_URL:-http://localhost:3001}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:3001}
+    ports:
+      - "3001:3001"
+    depends_on:
+      - mysql
+    networks:
+      - quiz-network
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: quiz_frontend
+    environment:
+      REACT_APP_API_URL: ${API_URL:-http://localhost:3001/api}
+      REACT_APP_BACKEND_URL: ${BACKEND_URL:-http://localhost:3001}
+      REACT_APP_FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - quiz-network
+    restart: unless-stopped
+
+networks:
+  quiz-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
