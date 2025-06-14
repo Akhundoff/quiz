@@ -126,7 +126,7 @@ services:
       UPLOAD_LIMIT: 100M
       MEMORY_LIMIT: 512M
     ports:
-      - "127.0.0.1:8082:80"
+      - "8082:80"
     networks:
       - quiz_prod_network
     depends_on:
