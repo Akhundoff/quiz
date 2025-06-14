@@ -139,27 +139,6 @@ services:
         reservations:
           memory: 128M
 
-  # Nginx Reverse Proxy (Production üçün əlavə)
-  nginx-proxy:
-    image: nginx:alpine
-    container_name: quiz_nginx_prod
-    restart: always
-    ports:
-      - "127.0.0.1:8080:80"
-    volumes:
-      - ./nginx/prod.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./logs/nginx:/var/log/nginx
-    networks:
-      - quiz_prod_network
-    depends_on:
-      - frontend
-      - backend
-    healthcheck:
-      test: ["CMD", "nginx", "-t"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
 volumes:
   mysql_prod_data:
     driver: local

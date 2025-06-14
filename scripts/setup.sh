@@ -1,106 +1,546 @@
 #!/bin/bash
 
 # Quiz System Setup Script
-echo "🚀 Quiz System Setup Script"
-echo "================================"
+# Bu script ilk quraşdırma üçün environment faylları yaradır
 
-# Check if Docker is installed
-if ! command -v docker &> /dev/null; then
-    echo "❌ Docker is not installed. Please install Docker first."
-    exit 1
-fi
+set -e
 
-# Check if Docker Compose is installed
-if ! command -v docker compose &> /dev/null; then
-    echo "❌ Docker Compose is not installed. Please install Docker Compose first."
-    exit 1
-fi
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
+CYAN='\033[0;36m'
+NC='\033[0m' # No Color
 
-echo "✅ Docker and Docker Compose are installed"
+# Functions
+print_header() {
+    echo -e "${CYAN}======================================${NC}"
+    echo -e "${CYAN}    Quiz System - Setup Script       ${NC}"
+    echo -e "${CYAN}======================================${NC}"
+    echo ""
+}
 
-# Create necessary directories
-echo "📁 Creating directories..."
-mkdir -p backups
-mkdir -p logs
-mkdir -p nginx/ssl
+print_step() {
+    echo -e "${YELLOW}📋 $1${NC}"
+}
 
-# Setup environment files
-echo "⚙️ Setting up environment files..."
+print_success() {
+    echo -e "${GREEN}✅ $1${NC}"
+}
 
-if [ ! -f .env ]; then
-    cp .env.example .env
-    echo "✅ Created .env file"
-else
-    echo "⚠️ .env file already exists"
-fi
+print_error() {
+    echo -e "${RED}❌ $1${NC}"
+}
 
-if [ ! -f backend/.env ]; then
-    cp backend/.env.example backend/.env
-    echo "✅ Created backend/.env file"
-else
-    echo "⚠️ backend/.env file already exists"
-fi
+print_info() {
+    echo -e "${BLUE}ℹ️  $1${NC}"
+}
 
-if [ ! -f frontend/.env ]; then
-    cp frontend/.env.example frontend/.env
-    echo "✅ Created frontend/.env file"
-else
-    echo "⚠️ frontend/.env file already exists"
-fi
+# Environment detection
+detect_environment() {
+    print_step "Environment müəyyən edilir..."
 
-# Generate JWT secret
-echo "🔐 Generating JWT secret..."
-JWT_SECRET=$(openssl rand -base64 32)
-if [[ "$OSTYPE" == "darwin"* ]]; then
-    # macOS
-    sed -i '' "s/your-super-secret-jwt-key-change-this-in-production/$JWT_SECRET/g" .env
-    sed -i '' "s/your-super-secret-jwt-key-change-this-in-production/$JWT_SECRET/g" backend/.env
-else
-    # Linux
-    sed -i "s/your-super-secret-jwt-key-change-this-in-production/$JWT_SECRET/g" .env
-    sed -i "s/your-super-secret-jwt-key-change-this-in-production/$JWT_SECRET/g" backend/.env
-fi
-echo "✅ JWT secret generated and updated"
+    if [[ "$1" == "--prod" ]] || [[ "$1" == "--production" ]]; then
+        ENV_TYPE="production"
+        DOMAIN_NAME="quiz.findex.az"
+        PROTOCOL="https"
+        NODE_ENV="production"
+        print_info "Production environment seçildi"
+    else
+        ENV_TYPE="development"
+        DOMAIN_NAME="localhost"
+        PROTOCOL="http"
+        NODE_ENV="development"
+        print_info "Development environment seçildi"
+    fi
+}
 
-# Generate random database passwords
-echo "🔑 Generating database passwords..."
-DB_PASSWORD=$(openssl rand -base64 16)
-ROOT_PASSWORD=$(openssl rand -base64 16)
+# Generate secure random passwords
+generate_password() {
+    openssl rand -base64 32 | tr -d "=+/" | cut -c1-25
+}
 
-if [[ "$OSTYPE" == "darwin"* ]]; then
-    # macOS
-    sed -i '' "s/quiz_password/$DB_PASSWORD/g" .env
-    sed -i '' "s/quiz_password/$DB_PASSWORD/g" backend/.env
-    sed -i '' "s/rootpassword/$ROOT_PASSWORD/g" .env
-else
-    # Linux
-    sed -i "s/quiz_password/$DB_PASSWORD/g" .env
-    sed -i "s/quiz_password/$DB_PASSWORD/g" backend/.env
-    sed -i "s/rootpassword/$ROOT_PASSWORD/g" .env
-fi
-echo "✅ Database passwords generated and updated"
+generate_jwt_secret() {
+    openssl rand -base64 64 | tr -d "=+/"
+}
 
-# Set file permissions
-echo "🔒 Setting file permissions..."
-chmod 600 .env backend/.env frontend/.env
-chmod +x scripts/setup.sh
-chmod +x scripts/backup.sh
-chmod +x scripts/deploy.sh
-chmod +x scripts/restore.sh
+# Create directory structure
+create_directories() {
+    print_step "Qovluq strukturu yaradılır..."
 
-echo ""
-echo "🎉 Setup completed successfully!"
-echo ""
-echo "📋 Next steps:"
-echo "1. Review and modify .env files if needed"
-echo "2. Run: make build"
-echo "3. Run: make start"
-echo ""
-echo "🔗 Access URLs:"
-echo "  🌐 Frontend: http://localhost:3000"
-echo "  🔧 Backend: http://localhost:3001"
-echo "  📚 API Docs: http://localhost:3001/api/docs"
-echo ""
-echo "🔑 Admin Login:"
-echo "  Username: admin"
-echo "  Password: admin123"
+    mkdir -p scripts
+    mkdir -p database/init
+    mkdir -p nginx
+    mkdir -p logs/{backend,frontend,nginx}
+    mkdir -p backups
+    mkdir -p backend/uploads
+
+    print_success "Qovluq strukturu yaradıldı"
+}
+
+# Create root .env file
+create_root_env() {
+    print_step "Root .env faylı yaradılır..."
+
+    # Generate secure passwords if not provided
+    if [[ -z "$MYSQL_ROOT_PASSWORD" ]]; then
+        MYSQL_ROOT_PASSWORD=$(generate_password)
+    fi
+
+    if [[ -z "$DB_PASSWORD" ]]; then
+        DB_PASSWORD=$(generate_password)
+    fi
+
+    if [[ -z "$JWT_SECRET" ]]; then
+        JWT_SECRET=$(generate_jwt_secret)
+    fi
+
+    # Set URLs based on environment
+    if [[ "$ENV_TYPE" == "production" ]]; then
+        FRONTEND_URL="${PROTOCOL}://${DOMAIN_NAME}"
+        BACKEND_URL="${PROTOCOL}://${DOMAIN_NAME}"
+        API_URL="${PROTOCOL}://${DOMAIN_NAME}/api"
+        DB_PORT="3307"
+    else
+        FRONTEND_URL="${PROTOCOL}://${DOMAIN_NAME}:3000"
+        BACKEND_URL="${PROTOCOL}://${DOMAIN_NAME}:3001"
+        API_URL="${PROTOCOL}://${DOMAIN_NAME}:3001/api"
+        DB_PORT="3307"
+    fi
+
+    cat > .env << EOF
+# Quiz System Environment Configuration
+# Generated by setup.sh on $(date)
+
+# Environment
+NODE_ENV=${NODE_ENV}
+
+# Domain Configuration
+DOMAIN_NAME=${DOMAIN_NAME}
+PROTOCOL=${PROTOCOL}
+
+# Database Configuration
+DB_HOST=localhost
+DB_PORT=${DB_PORT}
+DB_USERNAME=quiz_user
+DB_PASSWORD=${DB_PASSWORD}
+DB_DATABASE=quiz_system
+
+# MySQL Root Password (for Docker)
+MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+
+# JWT Configuration
+JWT_SECRET=${JWT_SECRET}
+
+# Application Configuration
+PORT=3001
+
+# URLs - Environment based
+FRONTEND_URL=${FRONTEND_URL}
+BACKEND_URL=${BACKEND_URL}
+API_URL=${API_URL}
+
+# CORS Origins (comma separated)
+CORS_ORIGINS=${FRONTEND_URL},${BACKEND_URL}
+EOF
+
+    print_success "Root .env faylı yaradıldı"
+}
+
+# Create backend .env file
+create_backend_env() {
+    print_step "Backend .env faylı yaradılır..."
+
+    # Load variables from root .env
+    source .env
+
+    cat > backend/.env << EOF
+# Backend Environment Configuration
+# Generated by setup.sh on $(date)
+
+NODE_ENV=${NODE_ENV}
+PORT=3001
+
+# Database
+DB_HOST=localhost
+DB_PORT=${DB_PORT}
+DB_USERNAME=${DB_USERNAME}
+DB_PASSWORD=${DB_PASSWORD}
+DB_DATABASE=${DB_DATABASE}
+
+# JWT
+JWT_SECRET=${JWT_SECRET}
+
+# URLs
+FRONTEND_URL=${FRONTEND_URL}
+BACKEND_URL=${BACKEND_URL}
+
+# CORS Origins (comma separated) - Environment based
+CORS_ORIGINS=${CORS_ORIGINS}
+
+# Domain Configuration (for production)
+DOMAIN_NAME=${DOMAIN_NAME}
+PROTOCOL=${PROTOCOL}
+EOF
+
+    print_success "Backend .env faylı yaradıldı"
+}
+
+# Create frontend .env file
+create_frontend_env() {
+    print_step "Frontend .env faylı yaradılır..."
+
+    # Load variables from root .env
+    source .env
+
+    cat > frontend/.env << EOF
+# Frontend Environment Configuration
+# Generated by setup.sh on $(date)
+
+# API Configuration - Environment based
+REACT_APP_API_URL=${API_URL}
+REACT_APP_BACKEND_URL=${BACKEND_URL}
+REACT_APP_FRONTEND_URL=${FRONTEND_URL}
+
+# App Configuration
+REACT_APP_NAME=QuizSystem
+REACT_APP_VERSION=1.0.0
+
+# Domain Configuration
+REACT_APP_DOMAIN=${DOMAIN_NAME}
+REACT_APP_PROTOCOL=${PROTOCOL}
+EOF
+
+    print_success "Frontend .env faylı yaradıldı"
+}
+
+# Create database init script
+create_database_init() {
+    print_step "Database initialization script yaradılır..."
+
+    cat > database/init/01-init.sql << 'EOF'
+-- Quiz System Database Initialization
+-- Created by setup.sh
+
+-- Create database if not exists
+CREATE DATABASE IF NOT EXISTS quiz_system CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+USE quiz_system;
+
+-- Questions table
+CREATE TABLE IF NOT EXISTS questions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    text TEXT NOT NULL,
+    type ENUM('radio', 'checkbox', 'text') NOT NULL DEFAULT 'radio',
+    options JSON,
+    required BOOLEAN DEFAULT TRUE,
+    order_number INT DEFAULT 0,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_order_active (order_number, is_active),
+    INDEX idx_type (type)
+);
+
+-- Quiz sessions table
+CREATE TABLE IF NOT EXISTS quiz_sessions (
+    id VARCHAR(36) PRIMARY KEY,
+    user_name VARCHAR(255),
+    is_completed BOOLEAN DEFAULT FALSE,
+    started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMP NULL,
+    ip_address VARCHAR(45),
+    user_agent TEXT,
+    INDEX idx_completed (is_completed),
+    INDEX idx_started (started_at)
+);
+
+-- User responses table
+CREATE TABLE IF NOT EXISTS user_responses (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    session_id VARCHAR(36) NOT NULL,
+    question_id INT NOT NULL,
+    answer_text TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (session_id) REFERENCES quiz_sessions(id) ON DELETE CASCADE,
+    FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_session_question (session_id, question_id),
+    INDEX idx_session (session_id),
+    INDEX idx_question (question_id)
+);
+
+-- Admin users table
+CREATE TABLE IF NOT EXISTS admin_users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    email VARCHAR(255),
+    is_active BOOLEAN DEFAULT TRUE,
+    last_login TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_username (username),
+    INDEX idx_active (is_active)
+);
+
+-- Insert default admin user (password: admin123)
+INSERT IGNORE INTO admin_users (username, password_hash, email) VALUES
+('admin', '$2b$10$8yF4L5L5L5L5L5L5L5L5Luu7YvSjHdHdHdHdHdHdHdHdHdHdHdHdH', 'admin@quiz.findex.az');
+
+-- Insert sample questions
+INSERT IGNORE INTO questions (id, text, type, options, required, order_number) VALUES
+(1, 'Adınız və soyadınız?', 'text', NULL, TRUE, 1),
+(2, 'Yaşınız hansı aralıqdadır?', 'radio', '["18-25", "26-35", "36-45", "46-55", "55+"]', TRUE, 2),
+(3, 'Hansı sahələrdə təcrübəniz var? (bir neçə variant seçə bilərsiniz)', 'checkbox', '["Frontend Development", "Backend Development", "Mobile Development", "DevOps", "UI/UX Design", "Data Science", "AI/ML"]', FALSE, 3),
+(4, 'Bu quiz haqqında rəyiniz', 'text', NULL, FALSE, 4);
+
+-- Create indexes for better performance
+CREATE INDEX IF NOT EXISTS idx_questions_order ON questions(order_number, is_active);
+CREATE INDEX IF NOT EXISTS idx_sessions_date ON quiz_sessions(started_at);
+CREATE INDEX IF NOT EXISTS idx_responses_session ON user_responses(session_id);
+EOF
+
+    print_success "Database initialization script yaradıldı"
+}
+
+# Create nginx production config
+create_nginx_prod_config() {
+    print_step "Nginx production konfiqurasiyası yaradılır..."
+
+    # Load variables from root .env
+    source .env
+
+    cat > nginx/prod.conf << EOF
+# Nginx Production Configuration for Quiz System
+# Domain: ${DOMAIN_NAME}
+
+upstream frontend {
+    server frontend:80;
+}
+
+upstream backend {
+    server backend:3001;
+}
+
+upstream phpmyadmin {
+    server phpmyadmin:80;
+}
+
+server {
+    listen 80;
+    server_name ${DOMAIN_NAME} www.${DOMAIN_NAME};
+
+    # Security headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Content-Security-Policy "default-src 'self' https: data: blob: 'unsafe-inline'" always;
+
+    # Gzip compression
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_proxied expired no-cache no-store private must-revalidate auth;
+    gzip_types text/plain text/css text/xml text/javascript application/x-javascript application/xml+rss application/javascript;
+
+    # Rate limiting
+    limit_req_zone \$binary_remote_addr zone=api:10m rate=10r/s;
+    limit_req_zone \$binary_remote_addr zone=login:10m rate=5r/m;
+
+    # Frontend (React)
+    location / {
+        proxy_pass http://frontend;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+
+        # Handle React Router
+        try_files \$uri \$uri/ @fallback;
+    }
+
+    location @fallback {
+        proxy_pass http://frontend;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+
+    # Backend API
+    location /api/ {
+        limit_req zone=api burst=20 nodelay;
+
+        proxy_pass http://backend;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+
+        # WebSocket support
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_cache_bypass \$http_upgrade;
+    }
+
+    # Admin login rate limiting
+    location /api/admin/login {
+        limit_req zone=login burst=3 nodelay;
+
+        proxy_pass http://backend;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+
+    # phpMyAdmin
+    location /phpmyadmin/ {
+        proxy_pass http://phpmyadmin/;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header X-Forwarded-Host \$host;
+        proxy_set_header X-Forwarded-Server \$host;
+        proxy_redirect off;
+        proxy_cookie_path / /phpmyadmin/;
+    }
+
+    # Static files caching
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
+        proxy_pass http://frontend;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        add_header Vary Accept-Encoding;
+    }
+
+    # Health check endpoint
+    location /health {
+        access_log off;
+        return 200 "healthy\n";
+        add_header Content-Type text/plain;
+    }
+
+    # Deny access to sensitive files
+    location ~ /\.(ht|git|svn) {
+        deny all;
+        return 404;
+    }
+
+    # Error pages
+    error_page 404 /index.html;
+    error_page 500 502 503 504 /50x.html;
+}
+EOF
+
+    print_success "Nginx production konfiqurasiyası yaradıldı"
+}
+
+# Make scripts executable
+make_scripts_executable() {
+    print_step "Script faylları executable edilir..."
+
+    chmod +x scripts/*.sh 2>/dev/null || true
+
+    print_success "Script faylları executable edildi"
+}
+
+# Display configuration summary
+show_summary() {
+    echo ""
+    echo -e "${PURPLE}======================================${NC}"
+    echo -e "${PURPLE}           Setup Tamamlandı           ${NC}"
+    echo -e "${PURPLE}======================================${NC}"
+    echo ""
+
+    # Load variables for display
+    source .env
+
+    echo -e "${CYAN}🌐 Environment: ${NC}${ENV_TYPE}"
+    echo -e "${CYAN}🏠 Domain: ${NC}${DOMAIN_NAME}"
+    echo -e "${CYAN}🔒 Protocol: ${NC}${PROTOCOL}"
+    echo -e "${CYAN}📱 Frontend URL: ${NC}${FRONTEND_URL}"
+    echo -e "${CYAN}🔧 Backend URL: ${NC}${BACKEND_URL}"
+    echo -e "${CYAN}🗄️  Database Port: ${NC}${DB_PORT}"
+    echo ""
+
+    echo -e "${YELLOW}🔑 Məlumatlar:${NC}"
+    echo -e "   Database User: ${DB_USERNAME}"
+    echo -e "   Database Password: ${DB_PASSWORD}"
+    echo -e "   MySQL Root Password: ${MYSQL_ROOT_PASSWORD}"
+    echo ""
+
+    echo -e "${GREEN}📋 Növbəti addımlar:${NC}"
+    echo "   1. make install    # Dependencies yüklə"
+    echo "   2. make build      # Docker containers build et"
+    echo "   3. make start      # Sistemi başlat"
+    echo ""
+    echo "   və ya tez başlanğıc üçün: make quick-start"
+    echo ""
+
+    if [[ "$ENV_TYPE" == "production" ]]; then
+        echo -e "${RED}⚠️  Production qeydləri:${NC}"
+        echo "   - SSL sertifikatlarının düzgün quraşdırıldığından əmin olun"
+        echo "   - Firewall qaydalarını yoxlayın"
+        echo "   - Backup strategiyasını tətbiq edin"
+        echo ""
+    fi
+
+    echo -e "${BLUE}📚 Daha çox məlumat: make help${NC}"
+}
+
+# Main function
+main() {
+    print_header
+
+    # Check if running as root (not recommended)
+    if [[ $EUID -eq 0 ]]; then
+        print_error "Bu scripti root istifadəçi ilə işə salmayın!"
+        print_info "Normal istifadəçi ilə işə salın: ./scripts/setup.sh"
+        exit 1
+    fi
+
+    # Check requirements
+    print_step "Tələblər yoxlanılır..."
+
+    command -v docker >/dev/null 2>&1 || { print_error "Docker tapılmadı! Docker quraşdırın."; exit 1; }
+    command -v docker-compose >/dev/null 2>&1 || { print_error "Docker Compose tapılmadı! Docker Compose quraşdırın."; exit 1; }
+
+    print_success "Tələblər təmin edilib"
+
+    # Detect environment
+    detect_environment "$1"
+
+    # Create directory structure
+    create_directories
+
+    # Create environment files
+    create_root_env
+    create_backend_env
+    create_frontend_env
+
+    # Create database initialization
+    create_database_init
+
+    # Create nginx config for production
+    if [[ "$ENV_TYPE" == "production" ]]; then
+        create_nginx_prod_config
+    fi
+
+    # Make scripts executable
+    make_scripts_executable
+
+    # Show summary
+    show_summary
+}
+
+# Error handling
+trap 'print_error "Setup zamanı xəta baş verdi!"; exit 1' ERR
+
+# Run main function
+main "$@"
