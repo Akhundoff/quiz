@@ -63,6 +63,10 @@ services:
     environment:
       PMA_HOST: mysql
       PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: rootpassword
+      MYSQL_ROOT_PASSWORD: rootpassword
+      PMA_ARBITRARY: 1
     ports:
       - "8082:80"
     depends_on:
@@ -70,9 +74,6 @@ services:
     networks:
       - quiz-network
     restart: unless-stopped
-networks:
-  quiz-network:
-    driver: bridge
 
 volumes:
   mysql_data:
