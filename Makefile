@@ -78,18 +78,18 @@ build: ## 🔧 Docker containers build et
 
 build-prod: ## 🔧 Production containers build et
 	@echo "$(YELLOW)🔨 Production containers build edilir...$(RESET)"
-	@docker-compose -f $(COMPOSE_PROD_FILE) build --no-cache
+	@docker compose -f $(COMPOSE_PROD_FILE) build --no-cache
 	@echo "$(GREEN)✅ Production build tamamlandı$(RESET)"
 
 start: ## 🚀 Sistemi başlat (detached mode)
 	@echo "$(YELLOW)▶️  Sistem başladılır...$(RESET)"
-	@docker-compose -f $(COMPOSE_FILE) up -d
+	@docker compose -f $(COMPOSE_FILE) up -d
 	@echo "$(GREEN)✅ Sistem başladıldı$(RESET)"
 	@make show-urls
 
 stop: ## ⏹️  Sistemi dayandır
 	@echo "$(YELLOW)⏹️  Sistem dayandırılır...$(RESET)"
-	@docker-compose -f $(COMPOSE_FILE) down
+	@docker compose -f $(COMPOSE_FILE) down
 	@echo "$(GREEN)✅ Sistem dayandırıldı$(RESET)"
 
 restart: ## 🔄 Sistemi yenidən başlat
@@ -101,36 +101,36 @@ restart: ## 🔄 Sistemi yenidən başlat
 # 🛠️ Environment Specific Commands
 dev: ## 🛠️ Development mode başlat
 	@echo "$(CYAN)🛠️  Development mode başladılır...$(RESET)"
-	@docker-compose -f $(COMPOSE_FILE) up --build
+	@docker compose -f $(COMPOSE_FILE) up --build
 	@echo "$(GREEN)✅ Development mode$(RESET)"
 
 prod: ## 🚀 Production mode başlat
 	@echo "$(RED)🚀 Production mode başladılır...$(RESET)"
-	@docker-compose -f $(COMPOSE_PROD_FILE) up -d --build
+	@docker compose -f $(COMPOSE_PROD_FILE) up -d --build
 	@echo "$(GREEN)✅ Production mode$(RESET)"
 	@make show-urls-prod
 
 prod-stop: ## ⏹️  Production sistemi dayandır
 	@echo "$(YELLOW)⏹️  Production sistem dayandırılır...$(RESET)"
-	@docker-compose -f $(COMPOSE_PROD_FILE) down
+	@docker compose -f $(COMPOSE_PROD_FILE) down
 	@echo "$(GREEN)✅ Production sistem dayandırıldı$(RESET)"
 
 # 📊 Monitoring Commands
 logs: ## 📊 Bütün servislərın loglarını göstər
-	@docker-compose -f $(COMPOSE_FILE) logs -f
+	@docker compose -f $(COMPOSE_FILE) logs -f
 
 logs-backend: ## 📊 Backend logları
-	@docker-compose -f $(COMPOSE_FILE) logs -f backend
+	@docker compose -f $(COMPOSE_FILE) logs -f backend
 
 logs-frontend: ## 📊 Frontend logları
-	@docker-compose -f $(COMPOSE_FILE) logs -f frontend
+	@docker compose -f $(COMPOSE_FILE) logs -f frontend
 
 logs-mysql: ## 📊 MySQL logları
-	@docker-compose -f $(COMPOSE_FILE) logs -f mysql
+	@docker compose -f $(COMPOSE_FILE) logs -f mysql
 
 status: ## 📊 Servislərin statusunu göstər
 	@echo "$(CYAN)📊 Servis Statusu:$(RESET)"
-	@docker-compose -f $(COMPOSE_FILE) ps
+	@docker compose -f $(COMPOSE_FILE) ps
 
 health: ## 📊 Health check
 	@echo "$(CYAN)🏥 Health Check:$(RESET)"
@@ -143,7 +143,7 @@ monitor: ## 📊 Sistem monitoring başlat
 # 🗄️ Database Operations
 db-connect: ## 🗄️ MySQL-ə qoşul
 	@echo "$(YELLOW)🗄️  MySQL-ə qoşulur...$(RESET)"
-	@docker-compose -f $(COMPOSE_FILE) exec mysql mysql -u$(DB_USERNAME) -p$(DB_PASSWORD) $(DB_DATABASE)
+	@docker compose -f $(COMPOSE_FILE) exec mysql mysql -u$(DB_USERNAME) -p$(DB_PASSWORD) $(DB_DATABASE)
 
 db-backup: ## 🗄️ Database backup yarat
 	@echo "$(YELLOW)💾 Database backup yaradılır...$(RESET)"
@@ -158,7 +158,7 @@ db-restore: ## 🗄️ Database restore et (Usage: make db-restore FILE=backup.s
 db-reset: ## 🗄️ Database-i sıfırla (XƏBƏRDAR!)
 	@echo "$(RED)⚠️  XƏBƏRDAR: Database silinəcək!$(RESET)"
 	@read -p "Davam etmək istəyirsiniz? (y/N): " confirm && [ "$$confirm" = "y" ]
-	@docker-compose -f $(COMPOSE_FILE) exec mysql mysql -u$(DB_USERNAME) -p$(DB_PASSWORD) -e "DROP DATABASE IF EXISTS $(DB_DATABASE); CREATE DATABASE $(DB_DATABASE);"
+	@docker compose -f $(COMPOSE_FILE) exec mysql mysql -u$(DB_USERNAME) -p$(DB_PASSWORD) -e "DROP DATABASE IF EXISTS $(DB_DATABASE); CREATE DATABASE $(DB_DATABASE);"
 	@echo "$(GREEN)✅ Database sıfırlandı$(RESET)"
 
 # 🧪 Testing Commands
@@ -193,7 +193,7 @@ clean-all: ## 🧹 Tam təmizlik (volumes daxil)
 	@echo "$(RED)🧹 Tam təmizlik başladılır...$(RESET)"
 	@read -p "Bütün data silinəcək! Davam etmək istəyirsiniz? (y/N): " confirm && [ "$$confirm" = "y" ]
 	@make stop
-	@docker-compose -f $(COMPOSE_FILE) down -v --remove-orphans
+	@docker compose -f $(COMPOSE_FILE) down -v --remove-orphans
 	@docker system prune -af --volumes
 	@echo "$(GREEN)✅ Tam təmizlik tamamlandı$(RESET)"
 
