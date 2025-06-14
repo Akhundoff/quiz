@@ -1,4 +1,4 @@
 @echo off
 echo 📊 Service Status:
-docker-compose ps
+docker compose ps
 pause

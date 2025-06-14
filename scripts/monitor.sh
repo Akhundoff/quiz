@@ -53,7 +53,7 @@ echo ""
 
 # Check database connectivity
 echo "🗄️ Database Connectivity:"
-if docker-compose exec mysql mysqladmin -u quiz_user -pquiz_password ping -h localhost >/dev/null 2>&1; then
+if docker compose exec mysql mysqladmin -u quiz_user -pquiz_password ping -h localhost >/dev/null 2>&1; then
     echo "✅ MySQL: Connected"
 else
     echo "❌ MySQL: Connection failed"
@@ -79,9 +79,9 @@ echo ""
 # Recent logs (last 10 lines)
 echo "📝 Recent Activity (Last 10 log entries):"
 echo "--- Backend ---"
-docker-compose logs --tail=5 backend 2>/dev/null | tail -5
+docker compose logs --tail=5 backend 2>/dev/null | tail -5
 echo "--- Frontend ---"
-docker-compose logs --tail=5 frontend 2>/dev/null | tail -5
+docker compose logs --tail=5 frontend 2>/dev/null | tail -5
 
 echo ""
 echo "✅ Monitoring completed at $(date)"

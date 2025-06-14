@@ -3,13 +3,13 @@ const { execSync } = require('child_process');
 const commands = {
     build: () => {
         console.log('🔨 Building Docker containers...');
-        execSync('docker-compose build --no-cache', { stdio: 'inherit' });
+        execSync('docker compose build --no-cache', { stdio: 'inherit' });
         console.log('✅ Build completed!');
     },
 
     start: () => {
         console.log('🚀 Starting Quiz System...');
-        execSync('docker-compose up -d', { stdio: 'inherit' });
+        execSync('docker compose up -d', { stdio: 'inherit' });
         console.log('✅ Services started!');
         console.log('');
         console.log('📍 Access URLs:');
@@ -20,18 +20,18 @@ const commands = {
 
     stop: () => {
         console.log('⏹️ Stopping services...');
-        execSync('docker-compose down', { stdio: 'inherit' });
+        execSync('docker compose down', { stdio: 'inherit' });
         console.log('✅ Services stopped!');
     },
 
     logs: () => {
         console.log('📝 Showing logs...');
-        execSync('docker-compose logs -f', { stdio: 'inherit' });
+        execSync('docker compose logs -f', { stdio: 'inherit' });
     },
 
     status: () => {
         console.log('📊 Service Status:');
-        execSync('docker-compose ps', { stdio: 'inherit' });
+        execSync('docker compose ps', { stdio: 'inherit' });
     }
 };
 

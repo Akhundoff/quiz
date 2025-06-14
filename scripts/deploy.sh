@@ -22,15 +22,15 @@ fi
 
 # Build new images
 echo "🔨 Building new images..."
-docker-compose build --no-cache
+docker compose build --no-cache
 
 # Stop current services
 echo "⏹️ Stopping current services..."
-docker-compose down
+docker compose down
 
 # Start services
 echo "▶️ Starting services..."
-docker-compose up -d
+docker compose up -d
 
 # Wait for services to be ready
 echo "⏳ Waiting for services to be ready..."
@@ -52,7 +52,7 @@ fi
 
 # Show status
 echo "📊 Service status:"
-docker-compose ps
+docker compose ps
 
 echo ""
 echo "🎉 Deployment completed!"

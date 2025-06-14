@@ -12,7 +12,7 @@ mkdir -p $BACKUP_DIR
 
 # Database backup
 echo "📊 Backing up database..."
-docker-compose exec -T mysql mysqldump -u quiz_user -pquiz_password quiz_system > "$BACKUP_DIR/${BACKUP_FILE}_database.sql"
+docker compose exec -T mysql mysqldump -u quiz_user -pquiz_password quiz_system > "$BACKUP_DIR/${BACKUP_FILE}_database.sql"
 
 # Environment files backup
 echo "⚙️ Backing up configuration..."

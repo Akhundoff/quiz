@@ -9,7 +9,7 @@ set mytime=%mytime: =0%
 
 set backup_file=backups\backup_%mydate%_%mytime%.sql
 
-docker-compose exec -T mysql mysqldump -u quiz_user -pquiz_password quiz_system > %backup_file%
+docker compose exec -T mysql mysqldump -u quiz_user -pquiz_password quiz_system > %backup_file%
 echo ✅ Backup created: %backup_file%
 pause
 
@@ -24,7 +24,7 @@ if /i "%confirm%" neq "y" (
     exit /b 0
 )
 
-docker-compose down -v
+docker compose down -v
 docker system prune -f
 docker volume prune -f
 echo ✅ Cleanup completed!

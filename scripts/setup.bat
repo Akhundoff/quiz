@@ -10,7 +10,7 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-docker-compose --version >nul 2>&1
+docker compose --version >nul 2>&1
 if %errorlevel% neq 0 (
     echo ❌ Docker Compose is not installed. Please install Docker Desktop first.
     pause

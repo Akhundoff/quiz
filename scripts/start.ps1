@@ -1,5 +1,5 @@
 Write-Host "🚀 Starting Quiz System..." -ForegroundColor Green
-docker-compose up -d
+docker compose up -d
 Write-Host "✅ Services started!" -ForegroundColor Green
 Write-Host ""
 Write-Host "📍 Access URLs:" -ForegroundColor Blue

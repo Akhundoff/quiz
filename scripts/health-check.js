@@ -56,7 +56,7 @@ const docsOk = checkEndpoint('API Documentation', 'http://localhost:3001/api/doc
 // Check database connectivity
 console.log('\n🗄️ Database Connectivity:');
 try {
-    execSync('docker-compose exec mysql mysqladmin -u quiz_user -pquiz_password ping -h localhost', { stdio: 'pipe' });
+    execSync('docker compose exec mysql mysqladmin -u quiz_user -pquiz_password ping -h localhost', { stdio: 'pipe' });
     console.log('✅ MySQL: Connected');
 } catch (error) {
     console.log('❌ MySQL: Connection failed');

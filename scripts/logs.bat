@@ -1,3 +1,3 @@
 @echo off
 echo 📝 Showing logs...
-docker-compose logs -f
+docker compose logs -f

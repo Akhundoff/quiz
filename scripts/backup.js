@@ -15,10 +15,10 @@ const backupFile = `backups/backup_${timestamp}.sql`;
 
 try {
     // Check if Docker containers are running
-    execSync('docker-compose ps', { stdio: 'pipe' });
+    execSync('docker compose ps', { stdio: 'pipe' });
 
     // Create database backup
-    execSync(`docker-compose exec -T mysql mysqldump -u quiz_user -pquiz_password quiz_system > ${backupFile}`, { stdio: 'inherit' });
+    execSync(`docker compose exec -T mysql mysqldump -u quiz_user -pquiz_password quiz_system > ${backupFile}`, { stdio: 'inherit' });
 
     console.log(`✅ Backup created: ${backupFile}`);
 

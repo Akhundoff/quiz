@@ -42,7 +42,7 @@ CORS_ORIGINS=$PROTOCOL://$DOMAIN_NAME
 MYSQL_ROOT_PASSWORD=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-25)
 EOF
 
-# Create production docker-compose override
+# Create production docker compose override
 cat > docker-compose.production.yml << EOF
 version: '3.8'
 
@@ -96,7 +96,7 @@ echo "🔧 Deploying with domain: $DOMAIN_NAME"
 source .env.production
 
 # Deploy
-docker-compose -f docker-compose.yml -f docker-compose.production.yml up -d --build
+docker compose -f docker-compose.yml -f docker-compose.production.yml up -d --build
 
 echo "🎉 Production deployment completed!"
 echo "🌐 Your quiz system is available at: $PROTOCOL://$DOMAIN_NAME"

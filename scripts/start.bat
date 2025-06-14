@@ -1,6 +1,6 @@
 @echo off
 echo 🚀 Starting Quiz System...
-docker-compose up -d
+docker compose up -d
 echo ✅ Services started!
 echo.
 echo 📍 Access URLs:

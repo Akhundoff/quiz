@@ -8,7 +8,7 @@ console.log('================================');
 // Check Docker installation
 try {
     execSync('docker --version', { stdio: 'pipe' });
-    execSync('docker-compose --version', { stdio: 'pipe' });
+    execSync('docker compose --version', { stdio: 'pipe' });
     console.log('✅ Docker and Docker Compose are installed');
 } catch (error) {
     console.log('❌ Docker is not installed. Please install Docker Desktop first.');

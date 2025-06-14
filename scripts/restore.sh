@@ -28,17 +28,17 @@ tar -xzf "$BACKUP_FILE" -C $RESTORE_DIR
 
 # Stop services
 echo "⏹️ Stopping services..."
-docker-compose down
+docker compose down
 
 # Restore database
 echo "📊 Restoring database..."
-docker-compose up -d mysql
+docker compose up -d mysql
 sleep 10
 
 # Find the database file
 DB_FILE=$(find $RESTORE_DIR -name "*_database.sql" | head -1)
 if [ -f "$DB_FILE" ]; then
-    docker-compose exec -T mysql mysql -u quiz_user -pquiz_password quiz_system < "$DB_FILE"
+    docker compose exec -T mysql mysql -u quiz_user -pquiz_password quiz_system < "$DB_FILE"
     echo "✅ Database restored"
 else
     echo "❌ Database backup file not found"
@@ -60,7 +60,7 @@ fi
 
 # Start all services
 echo "▶️ Starting all services..."
-docker-compose up -d
+docker compose up -d
 
 # Clean up
 rm -rf $RESTORE_DIR

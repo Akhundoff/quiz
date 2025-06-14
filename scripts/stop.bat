@@ -1,5 +1,5 @@
 @echo off
 echo ⏹️ Stopping services...
-docker-compose down
+docker compose down
 echo ✅ Services stopped!
 pause

@@ -17,11 +17,11 @@ fi
 
 # Stop all services
 echo "⏹️ Stopping all services..."
-docker-compose down
+docker compose down
 
 # Remove containers
 echo "🗑️ Removing containers..."
-docker-compose rm -f
+docker compose rm -f
 
 # Remove images
 echo "🖼️ Removing images..."
@@ -32,7 +32,7 @@ echo "💽 Removing volumes..."
 read -p "Do you want to remove database volumes? (This will delete all data!) [y/N] " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
-    docker-compose down -v
+    docker compose down -v
     docker volume prune -f
     echo "✅ Volumes removed"
 else

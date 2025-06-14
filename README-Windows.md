@@ -57,14 +57,14 @@ copy backend\.env.example backend\.env
 copy frontend\.env.example frontend\.env
 
 # Docker commands
-docker-compose build
-docker-compose up -d
+docker compose build
+docker compose up -d
 
 # View logs
-docker-compose logs -f
+docker compose logs -f
 
 # Stop
-docker-compose down
+docker compose down
 ```
 
 ## Development Mode

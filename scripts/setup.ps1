@@ -4,7 +4,7 @@ Write-Host "================================" -ForegroundColor Green
 # Check Docker installation
 try {
     docker --version | Out-Null
-    docker-compose --version | Out-Null
+    docker compose --version | Out-Null
     Write-Host "✅ Docker and Docker Compose are installed" -ForegroundColor Green
 } catch {
     Write-Host "❌ Docker is not installed. Please install Docker Desktop first." -ForegroundColor Red
