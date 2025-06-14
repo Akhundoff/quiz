@@ -73,7 +73,7 @@ install: ## 📦 Dependencies yüklə
 # 🔧 Docker Operations
 build: ## 🔧 Docker containers build et
 	@echo "$(YELLOW)🔨 Docker containers build edilir...$(RESET)"
-	@docker-compose -f $(COMPOSE_FILE) build --no-cache
+	@docker compose -f $(COMPOSE_FILE) build --no-cache
 	@echo "$(GREEN)✅ Build tamamlandı$(RESET)"
 
 build-prod: ## 🔧 Production containers build et
